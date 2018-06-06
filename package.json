@@ -1,0 +1,19 @@
+{
+  "name": "miso",
+  "version": "1.0.0",
+  "description": "Project Miso",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Squishy123/miso.git"
+  },
+  "author": "Squishy123",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Squishy123/miso/issues"
+  },
+  "homepage": "https://github.com/Squishy123/miso#readme"
+}
