@@ -18,9 +18,10 @@ const Anime = require('./schemas/animeSchema.js');
 
 //Proxy Properties
 const proxySettings = require('./proxySettings.json');
+const proxyList = require('./proxylist.json');
 
 const server = Hapi.server({
-    port: 3000,
+    port: 8000,
     host: 'localhost'
 });
 
@@ -33,6 +34,7 @@ io.on('connection', function (socket) {
 const edge = io.of('/api/edge');
 
 edge.on('connection', (socket) => {
+    console.log("Connected to API socket")
     socket.on('/anime', (query) => {
         Anime.find(query, (err, animes) => {
             if (err) return edge.emit(`animes/${query.title}`, err);
@@ -49,17 +51,20 @@ edge.on('connection', (socket) => {
     });
 });
 
-const nineAnime = io.of('/source/nineAnime');
+const nineAnime = io.of('/source/9anime');
 
 nineAnime.on('connection', (socket) => {
-    socket.on('/search', (query) => {
+    console.log("Connected to 9anime socket!")
+    socket.on('search/anime', (query) => {
+        console.log("COpy That");
         if(query)
             async.retry({times: 100}, 
             (cb, results) => {
-                nineAnimeScraper.getSearch(query.keyword, `http://${proxySettings.username}:${proxySettings.password}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`, (res) => {
-                    if(res instanceof Error)
+                //nineAnimeScraper.getSearch(query.keyword, `http://${proxySettings.username}:${proxySettings.password}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`, (res) => {
+                    nineAnimeScraper.getSearch(query.keyword, null, (res) => {
+                if(res instanceof Error)
                         cb(new Error("Tunnel Failed"));
-                    else return nineAnime.emit(`/search/${query.keyword}`, [res]);
+                    else return nineAnime.emit(`search/${query.keyword}`, [res]);
                 })
             }, (err, res) => {
                 console.log(err);
@@ -99,8 +104,6 @@ const init = async () => {
     taskQueue.saturated = () => {
         console.log(`Waiting for current tasks to complete...`)
     }
-    
-    //puppet.push({ func: package, args: [s.href, s.index] }, () => { console.log("Completed task!") })
 };
 
 process.on('unhandledRejection', (err) => {
