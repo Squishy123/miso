@@ -12,21 +12,46 @@ const proxySettings = require('../proxySettings.json')
 const Anime = require('../schemas/animeSchema.js');
 const Episode = require('../schemas/episodeSchema.js');
 
-const threads = 4;
+const threads = 8;
+
+async function package(url, index, browser, an) {
+    let page = await scrape.initPage(browser);
+    //await page.authenticate({ username: 'peter@packp.net', password: 'gnawwang' });
+    let player = await scrape.getPlayer(page, url);
+    let sources = [];
+    sources.push({ player: `${player}&q=1080p`, quality: "1080p" })
+
+    let ep = new Episode({ id: index, sources: sources })
+    await ep.save((err) => {
+        if (err) console.log(err);
+        console.log("Saved Episode Successfully!")
+    });
+    await Anime.findOneAndUpdate({ _id: an._id }, { $addToSet: { episodes: ep } }, (err) => {
+        if (err) console.log(err)
+    });
+    await an.save();
+    await Anime.findOne({ title: an.title })
+        .populate('episodes')
+        .exec((err, a) => {
+            if (err) console.log(err);
+        })
+    await page.close();
+}
 
 module.exports = {
     scrapeURL: async (url, title) => {
         let start = new Date();
         let browser, page, sources;
-        await retry(async() => {
-            browser = await puppeteer.launch({headless: true, ignoreHTTPSErrors: true, args: [`--proxy-server=http://${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`] });
+        await retry(async () => {
+            browser = await puppeteer.launch({ headless: true, ignoreHTTPSErrors: true })//, args: [`--proxy-server=http://${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`] });
             page = await scrape.initPage(browser);
-            await page.authenticate({username: proxySettings.username, password: proxySettings.password});
-            sources = await scrape.getSource(url, null, (sources) => {
-                return sources;
-            });
-            console.log(sources);
-        }, {retries: 100});
+            //await page.authenticate({username: proxySettings.username, password: proxySettings.password});
+        }, { retries: 100 });
+        [sources, ...rest] = await Promise.all([new Promise((resolve, reject) => {
+            scrape.getSource(url, null, (sources) => {
+                resolve(sources);
+            })
+        }), page.goto(url, { waitUntil: "domcontentloaded" })]);
         
         if (!title) {
             let title = await page.evaluate(() => {
@@ -63,37 +88,11 @@ module.exports = {
                     })();
                     console.log(`Execution Completed: ${new Date() - start}ms`);
                 }
-
-                async function package(url, index) {
-                    let page = await scrape.initPage(browser);
-                    await page.authenticate({ username: 'peter@packp.net', password: 'gnawwang' });
-                    let player = await scrape.getPlayer(page, url);
-                    let sources = [];
-                    sources.push({ player: `${player}&q=360p`, quality: "360p" })
-                    sources.push({ player: `${player}&q=480p`, quality: "480p" })
-                    sources.push({ player: `${player}&q=720p`, quality: "720p" })
-                    sources.push({ player: `${player}&q=1080p`, quality: "1080p" })
-
-                    let ep = new Episode({ id: index, sources: sources })
-                    await ep.save((err) => {
-                        if (err) console.log(err);
-                        console.log("Saved Episode Successfully!")
-                    });
-                    await Anime.findOneAndUpdate({ _id: an._id }, { $addToSet: { episodes: ep } }, (err) => {
-                        if (err) console.log(err)
-                    });
-                    await an.save();
-                    await Anime.findOne({ title: an.title })
-                        .populate('episodes')
-                        .exec((err, a) => {
-                            if (err) console.log(err);
-                        })
-                    await page.close();
-                }
                 async.each(sources[0].sourceList, (s) => {
-                    puppet.push({ func: package, args: [s.href, s.index] }, () => { console.log("Completed task!") })
+                    puppet.push({ func: package, args: [`https://www5.9anime.is/${s.href}`, s.index, browser, an] }, () => { return console.log("Completed task!") })
                 });
             }
         });
     }
 }
+
