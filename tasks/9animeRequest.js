@@ -52,7 +52,7 @@ module.exports = {
                 resolve(sources);
             })
         }), page.goto(url, { waitUntil: "domcontentloaded" })]);
-        
+
         if (!title) {
             let title = await page.evaluate(() => {
                 return document.querySelector('#main > div > div.widget.player > div.widget-title > h1').innerHTML;
@@ -61,37 +61,47 @@ module.exports = {
         await page.close();
 
         await Anime.findOne({ title: title }, (err, a) => {
+            let an;
+            //Using rapidvideo sources 
+            //for scrapes
+            let scrapeSources = []
             if (a) {
-                let an = a;
+                an = a;
+                //check if there are new sources 
+                if (sources[0].sourceList.length > an.episodes.length) {
+                    scrapeSources = sources[0].sourceList.slice(an.episodes.length - 1, an.episodes.length + (sources[0].sourceList.length - an.episodes.length) - 1)
+                }
             } else {
-                let an = new Anime({ title: title });
+                an = new Anime({ title: title });
                 an.save((err) => {
                     if (err) console.log(err);
                     console.log("Saved Anime Successfully!")
                 });
-                let numTask = 0;
-                let puppet = async.queue(async (task, callback) => {
-                    numTask++;
-                    console.log(`task: ${numTask}`)
-                    await task.func.apply(null, task.args)
-                    callback();
-                }, threads)
-
-                puppet.saturated = () => {
-                    console.log("Waiting for current tasks to complete...")
-                }
-
-                puppet.drain = () => {
-                    console.log("All tasks completed!");
-                    (async () => {
-                        await browser.close();
-                    })();
-                    console.log(`Execution Completed: ${new Date() - start}ms`);
-                }
-                async.each(sources[0].sourceList, (s) => {
-                    puppet.push({ func: package, args: [`https://www5.9anime.is/${s.href}`, s.index, browser, an] }, () => { return console.log("Completed task!") })
-                });
+                scrapeSources = sources[0].sourceList;
             }
+
+            let numTask = 0;
+            let puppet = async.queue(async (task, callback) => {
+                numTask++;
+                console.log(`task: ${numTask}`)
+                await task.func.apply(null, task.args)
+                callback();
+            }, threads)
+
+            puppet.saturated = () => {
+                console.log("Waiting for current tasks to complete...")
+            }
+
+            puppet.drain = () => {
+                console.log("All tasks completed!");
+                (async () => {
+                    await browser.close();
+                })();
+                console.log(`Execution Completed: ${new Date() - start}ms`);
+            }
+            async.each(scrapeSources, (s) => {
+                puppet.push({ func: package, args: [`https://www5.9anime.is/${s.href}`, s.index, browser, an] }, () => { return console.log("Completed task!") })
+            });
         });
     }
 }
