@@ -7,6 +7,9 @@ const async = require('async');
 const retry = require('async-retry');
 let taskQueue, taskLimit = 5;
 
+//search result processing
+const stringSimilarity = require('string-similarity');
+
 //Scrapers
 const nineAnimeScraper = require('9anime-scraper');
 
@@ -33,16 +36,16 @@ io.on('connection', function (socket) {
 
 const edge = io.of('/api/edge');
 
-edge.on('connection', (socket) => {
+edge.on('connection', (client) => {
     console.log("Connected to API socket")
-    socket.on('/anime', (query) => {
+    client.on('/anime', (query) => {
         Anime.find(query, (err, animes) => {
             if (err) return edge.emit(`animes/${query.title}`, err);
             if (animes.length == 0) return edge.emit(`animes/${query.title}`, null)
             return api.emit(`animes/${query.title}`, animes);
         })
     });
-    socket.on('/episodes', (query) => {
+    client.on('/episodes', (query) => {
         Episode.find(query, (err, episodes) => {
             if (err) return api.emit(`episode/${query._id}`, err)
             if (!e) return api.emit(`episode/${query._id}`, null)
@@ -53,10 +56,9 @@ edge.on('connection', (socket) => {
 
 const nineAnime = io.of('/source/9anime');
 
-nineAnime.on('connection', (socket) => {
+nineAnime.on('connection', (client) => {
     console.log("Connected to 9anime socket!")
-    socket.on('search/anime', (query) => {
-        console.log("COpy That");
+    client.on('search/anime', (query) => {
         if(query)
             async.retry({times: 100}, 
             (cb, results) => {
@@ -64,14 +66,20 @@ nineAnime.on('connection', (socket) => {
                     nineAnimeScraper.getSearch(query.keyword, null, (res) => {
                 if(res instanceof Error)
                         cb(new Error("Tunnel Failed"));
-                    else return nineAnime.emit(`search/${query.keyword}`, [res]);
+
+                let similaritySorted = res.sort((a,b) => {
+                    return stringSimilarity.compareTwoStrings(b.title, query.keyword) - stringSimilarity.compareTwoStrings(a.title, query.keyword);
+                });
+
+
+                return nineAnime.emit(`search/${query.keyword}`, [similaritySorted]);
                 })
             }, (err, res) => {
                 console.log(err);
             });
     });
 
-    socket.on('/request', (query) => {
+    client.on('/request', (query) => {
         if(query)
             taskQueue.push({func: nineAnimeRequest.scrapeURL(), args: [query.url, query.title]}, () => {console.log(`Finished scraping ${query.title}`)});
     })
