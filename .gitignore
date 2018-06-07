@@ -1,3 +1,6 @@
+proxySettings*
+database*
+
 # Logs
 logs
 *.log

@@ -4,7 +4,9 @@
   "description": "Project Miso",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "devstart": "nodemon server.js",
+    "start": "nodemon server.js"
   },
   "repository": {
     "type": "git",
@@ -15,5 +17,14 @@
   "bugs": {
     "url": "https://github.com/Squishy123/miso/issues"
   },
-  "homepage": "https://github.com/Squishy123/miso#readme"
+  "homepage": "https://github.com/Squishy123/miso#readme",
+  "dependencies": {
+    "9anime-scraper": "^1.0.3",
+    "async": "^2.6.1",
+    "async-retry": "^1.2.1",
+    "hapi": "^17.5.1",
+    "mongoose": "^5.1.4",
+    "nodemon": "^1.17.5",
+    "socket.io": "^2.1.1"
+  }
 }
