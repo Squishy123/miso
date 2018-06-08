@@ -72,7 +72,7 @@ nineAnime.on('connection', (client) => {
                 });
 
 
-                return nineAnime.emit(`search/${query.keyword}`, [similaritySorted]);
+                return nineAnime.emit(`search/anime/${query.keyword}`, [similaritySorted]);
                 })
             }, (err, res) => {
                 console.log(err);
