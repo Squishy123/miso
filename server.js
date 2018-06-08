@@ -38,14 +38,14 @@ const edge = io.of('/api/edge');
 
 edge.on('connection', (client) => {
     console.log("Connected to API socket")
-    client.on('/anime', (query) => {
+    client.on('anime', (query) => {
         Anime.find(query, (err, animes) => {
-            if (err) return edge.emit(`animes/${query.title}`, err);
-            if (animes.length == 0) return edge.emit(`animes/${query.title}`, null)
-            return api.emit(`animes/${query.title}`, animes);
+            if (err) return edge.emit(`anime/${query.title}`, err);
+            if (animes.length == 0) return edge.emit(`anime/${query.title}`, null)
+            return api.emit(`anime/${query.title}`, animes);
         })
     });
-    client.on('/episodes', (query) => {
+    client.on('episodes', (query) => {
         Episode.find(query, (err, episodes) => {
             if (err) return api.emit(`episode/${query._id}`, err)
             if (!e) return api.emit(`episode/${query._id}`, null)
@@ -79,7 +79,7 @@ nineAnime.on('connection', (client) => {
             });
     });
 
-    client.on('/request', (query) => {
+    client.on('request', (query) => {
         if(query)
             taskQueue.push({func: nineAnimeRequest.scrapeURL(), args: [query.url, query.title]}, () => {console.log(`Finished scraping ${query.title}`)});
     })
