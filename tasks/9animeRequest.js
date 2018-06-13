@@ -40,6 +40,7 @@ async function package(url, index, browser, an) {
 
 module.exports = {
     scrapeURL: async (url, title) => {
+        console.log(url);
         let start = new Date();
         let browser, page, sources;
         await retry(async () => {

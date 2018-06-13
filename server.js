@@ -18,6 +18,7 @@ const nineAnimeRequest = require('./tasks/9animeRequest.js');
 
 //schemas
 const Anime = require('./schemas/animeSchema.js');
+const Episode = require('./schemas/episodeSchema.js');
 
 //Proxy Properties
 const proxySettings = require('./proxySettings.json');
@@ -42,14 +43,14 @@ edge.on('connection', (client) => {
         Anime.find(query, (err, animes) => {
             if (err) return edge.emit(`anime/${query.title}`, err);
             if (animes.length == 0) return edge.emit(`anime/${query.title}`, null)
-            return api.emit(`anime/${query.title}`, animes);
+            return edge.emit(`anime/${query.title}`, animes);
         })
     });
-    client.on('episodes', (query) => {
-        Episode.find(query, (err, episodes) => {
-            if (err) return api.emit(`episode/${query._id}`, err)
-            if (!e) return api.emit(`episode/${query._id}`, null)
-            return api.emit(`episode/${query._id}`, e);
+    client.on('episode', (query) => {
+        Episode.find(query, (err, episode) => {
+            if (err) return edge.emit(`episode/${query._id}`, err)
+            if (!episode) return edge .emit(`episode/${query._id}`, null)
+            return edge.emit(`episode/${query._id}`, episode);
         })
     });
 });
@@ -70,8 +71,7 @@ nineAnime.on('connection', (client) => {
                 let similaritySorted = res.sort((a,b) => {
                     return stringSimilarity.compareTwoStrings(b.title, query.keyword) - stringSimilarity.compareTwoStrings(a.title, query.keyword);
                 });
-
-
+                
                 return nineAnime.emit(`search/anime/${query.keyword}`, [similaritySorted]);
                 })
             }, (err, res) => {
@@ -80,8 +80,9 @@ nineAnime.on('connection', (client) => {
     });
 
     client.on('request', (query) => {
+        console.log(query);
         if(query)
-            taskQueue.push({func: nineAnimeRequest.scrapeURL(), args: [query.url, query.title]}, () => {console.log(`Finished scraping ${query.title}`)});
+            taskQueue.push({func: nineAnimeRequest.scrapeURL(query.url, query.title), args: [query.url, query.title]}, () => {console.log(`Finished scraping ${query.title}`)});
     })
 })
 
