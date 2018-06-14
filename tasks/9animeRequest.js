@@ -18,6 +18,7 @@ async function package(url, index, browser, an) {
     let page = await scrape.initPage(browser);
     //await page.authenticate({ username: 'peter@packp.net', password: 'gnawwang' });
     let player = await scrape.getPlayer(page, url);
+    await page.close();
     let sources = [];
     sources.push({ player: `${player}&q=1080p`, quality: "1080p" })
 
@@ -35,7 +36,6 @@ async function package(url, index, browser, an) {
         .exec((err, a) => {
             if (err) console.log(err);
         })
-    await page.close();
 }
 
 module.exports = {
@@ -101,7 +101,7 @@ module.exports = {
                 console.log(`Execution Completed: ${new Date() - start}ms`);
             }
             async.each(scrapeSources, (s) => {
-                puppet.push({ func: package, args: [`https://www5.9anime.is/${s.href}`, s.index, browser, an] }, () => { return console.log("Completed task!") })
+                puppet.push({ func: package, args: [`https://www5.9anime.is${s.href}`, s.index, browser, an] }, () => { return console.log("Completed task!") })
             });
         });
     }
