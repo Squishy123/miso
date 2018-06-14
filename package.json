@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/Squishy123/miso#readme",
   "dependencies": {
-    "9anime-scraper": "^1.0.7",
+    "9anime-scraper": "^1.0.8",
     "async": "^2.6.1",
     "async-retry": "^1.2.1",
     "hapi": "^17.5.1",
