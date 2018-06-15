@@ -25,8 +25,7 @@ const proxySettings = require('./proxySettings.json');
 const proxyList = require('./proxylist.json');
 
 const server = Hapi.server({
-    port: 8000,
-    host: 'localhost'
+    port: 8000
 });
 
 const io = require('socket.io')(server.listener);
