@@ -3,10 +3,8 @@ const Source = require('./sourceSchema.js');
 
 let EpisodeSchema = new mongoose.Schema({
     id: Number,
-    title: String, 
-    english: String,
-    duration: Number,
-    sources: [{player: String, url: String, quality: String}],
+    episodeNumber: Number,
+    sources: [{player: String, provider: String}],
 })
 
 module.exports = mongoose.model('Episode', EpisodeSchema)

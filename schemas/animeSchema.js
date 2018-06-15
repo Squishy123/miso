@@ -4,14 +4,7 @@ const Source = require('./sourceSchema.js');
 
 let AnimeSchema = new mongoose.Schema({
     id: Number,
-    title: String,
-    episodes: [{type: mongoose.Schema.Types.ObjectId, ref: 'Episode'}],
-    status: {
-        type: [{
-            type: String,
-            enum: ['Completed', 'Airing', 'Not Yet Aired']
-        }], default: ['Airing']    
-    },
+    episodes: [{type: mongoose.Schema.Types.ObjectId, ref: 'Episode', episodeNumber: Number}],
     scrapeDate: Date
 })
 

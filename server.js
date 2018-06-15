@@ -82,7 +82,7 @@ nineAnime.on('connection', (client) => {
     client.on('request', (query) => {
         console.log(query);
         if(query)
-            taskQueue.push({func: nineAnimeRequest.scrapeURL(query.url, query.title), args: [query.url, query.title]}, () => {console.log(`Finished scraping ${query.title}`)});
+            taskQueue.push({func: nineAnimeRequest.scrapeURL, args: [query.url, query.title]}, () => {console.log(`Finished scraping ${query.title}`)});
     })
 })
 
