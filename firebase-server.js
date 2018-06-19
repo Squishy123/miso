@@ -12,7 +12,7 @@ const stringSimilarity = require('string-similarity');
 const nineAnimeScraper = require('9anime-scraper');
 
 //Tasks
-const nineAnimeRequest = require('./tasks/9animeRequest.js');
+const nineAnimeRequest = require('./tasks/9animeRequest-firebase.js');
 
 //Proxy Properties
 const proxySettings = require('./proxySettings.json');
@@ -88,8 +88,9 @@ const init = async () => {
   //reference for scrape requests
   let scrapeRequests = db.ref('scrape-requests');
   scrapeRequests.on('child_added', (snapshot) => {
-    console.log(snapshot.val());
-    db.ref(`scrape-request/${snapshot.key}`).remove();
+    let query = snapshot.val();
+    taskQueue.push({func: nineAnimeRequest.scrapeURL(query.url, query.title, db), args: [query.url, query.title, db]}, () => {console.log(`Finished scraping ${query.title}`)});
+    db.ref(`scrape-requests/${snapshot.key}`).remove();
   });
 }
 

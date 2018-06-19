@@ -7,98 +7,84 @@ const scrape = require('9anime-scraper')
 const proxyList = require('../proxyList.json');
 const proxySettings = require('../proxySettings.json')
 
+//threads
 const threads = 8;
 
-async function package(url, index, browser, an) {
+//firebase stuff
+/*
+const admin = require('firebase-admin');
+const serviceAccount = require("../amine-7eb29-firebase-adminsdk-b3cu9-4b3d779435.json");
+
+//init firebase
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://amine-7eb29.firebaseio.com",
+    databaseAuthVariableOverride: {
+        uid: 'miso'
+    }
+});
+
+//setup database
+let db = admin.database();*/
+
+async function package(url, index, browser, anime, db) {
     let page = await scrape.initPage(browser);
-    //await page.authenticate({ username: 'peter@packp.net', password: 'gnawwang' });
+    //await page.authenticate({ username: proxySettings.username, password: proxySettings.password });
     let player = await scrape.getPlayer(page, url);
     await page.close();
-    let sources = [];
-    sources.push({ player: `${player}&q=1080p`, quality: "1080p" })
 
-    let ep = new Episode({ id: index, sources: sources })
-    await ep.save((err) => {
-        if (err) console.log(err);
-        console.log("Saved Episode Successfully!")
-    });
-    await Anime.findOneAndUpdate({ _id: an._id }, { $addToSet: { episodes: ep } }, (err) => {
-        if (err) console.log(err)
-    });
-    await an.save();
-    await Anime.findOne({ title: an.title })
-        .populate('episodes')
-        .exec((err, a) => {
-            if (err) console.log(err);
-        })
+    /*
+    let episode = { id: index, source: player };
+    console.log(episode);
+
+    //push to episode
+    let ref = db.ref(`scrape-results/${anime.title}/episodes`).push();
+    ref.set(episode);*/
+    let episode = {source: player};
+    db.ref(`scrape-results/${anime.title}/episodes/${index}`).set(episode);
 }
 
 module.exports = {
-    scrapeURL: async (url, title) => {
-        console.log(url);
+    scrapeURL: async (url, title, db) => {
         let start = new Date();
-        let browser, page, sources;
-        await retry(async () => {
-            browser = await puppeteer.launch({ headless: true, ignoreHTTPSErrors: true })//, args: [`--proxy-server=http://${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`] });
+        let browser, page, anime, sources;
+
+        //login with proxy and get all scrape sources
+        //await retry(async () => {
+            browser = await puppeteer.launch({ headless: true, ignoreHTTPSErrors: true})//, args: [`--proxy-server=http://${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`] });
             page = await scrape.initPage(browser);
-            //await page.authenticate({username: proxySettings.username, password: proxySettings.password});
-        }, { retries: 100 });
+           // await page.authenticate({ username: proxySettings.username, password: proxySettings.password });
+      //  }, { retries: 100 });
         [sources, ...rest] = await Promise.all([new Promise((resolve, reject) => {
             scrape.getSource(url, null, (sources) => {
                 resolve(sources);
             })
         }), page.goto(url, { waitUntil: "domcontentloaded" })]);
 
-        if (!title) {
-            let title = await page.evaluate(() => {
-                return document.querySelector('#main > div > div.widget.player > div.widget-title > h1').innerHTML;
-            });
+        //new anime object
+        anime = { title: title };
+
+        let numTask = 0;
+        let puppet = async.queue(async (task, callback) => {
+            numTask++;
+            console.log(`task: ${numTask}`)
+            await task.func.apply(null, task.args)
+            callback();
+        }, threads)
+
+        puppet.saturated = () => {
+            console.log("Waiting for current tasks to complete...")
         }
-        await page.close();
 
-        await Anime.findOne({ title: title }, (err, a) => {
-            let an;
-            //Using rapidvideo sources 
-            //for scrapes
-            let scrapeSources = []
-            if (a) {
-                an = a;
-                //check if there are new sources 
-                if (sources[0].sourceList.length > an.episodes.length) {
-                    scrapeSources = sources[0].sourceList.slice(an.episodes.length - 1, an.episodes.length + (sources[0].sourceList.length - an.episodes.length) - 1)
-                }
-            } else {
-                an = new Anime({ title: title });
-                an.save((err) => {
-                    if (err) console.log(err);
-                    console.log("Saved Anime Successfully!")
-                });
-                scrapeSources = sources[0].sourceList;
-            }
-
-            let numTask = 0;
-            let puppet = async.queue(async (task, callback) => {
-                numTask++;
-                console.log(`task: ${numTask}`)
-                await task.func.apply(null, task.args)
-                callback();
-            }, threads)
-
-            puppet.saturated = () => {
-                console.log("Waiting for current tasks to complete...")
-            }
-
-            puppet.drain = () => {
-                console.log("All tasks completed!");
-                (async () => {
-                    await browser.close();
-                })();
-                console.log(`Execution Completed: ${new Date() - start}ms`);
-            }
-            async.each(scrapeSources, (s) => {
-                puppet.push({ func: package, args: [`https://www5.9anime.is${s.href}`, s.index, browser, an] }, () => { return console.log("Completed task!") })
-            });
+        puppet.drain = () => {
+            console.log("All tasks completed!");
+            (async () => {
+                await browser.close();
+            })();
+            console.log(`Execution Completed: ${new Date() - start}ms`);
+        }
+        async.each(sources[0].sourceList, (s) => {
+            puppet.push({ func: package, args: [`https://www6.9anime.is${s.href}`, s.index, browser, anime, db] }, () => { return console.log("Completed task!") })
         });
     }
 }
-
