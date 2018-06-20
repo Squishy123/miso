@@ -35,7 +35,7 @@ module.exports = {
         //login with proxy and get all scrape sources
         await new Promise((resolve, reject) => {
             retry(async () => {
-                browser = await puppeteer.launch({ headless: false, args: [`--proxy-server=${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`, `--ignore-certificate-errors`] });
+                browser = await puppeteer.launch({ headless: true, args: [`--proxy-server=${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}`, `--ignore-certificate-errors`] });
                 resolve(browser);
             }, { retries: 100 })
         });

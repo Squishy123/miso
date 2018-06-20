@@ -114,7 +114,7 @@ const init = async () => {
             console.log(err);
           });
       }
-      //db.ref(`scrape-requests/${snapshot.key}`).remove();
+      db.ref(`scrape-requests/${snapshot.key}`).remove();
     });
   });
 }
