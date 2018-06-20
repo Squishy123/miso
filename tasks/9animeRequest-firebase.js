@@ -8,7 +8,7 @@ const proxyList = require('../proxyList.json');
 const proxySettings = require('../proxySettings.json')
 
 //threads
-const threads = 8;
+const threads = 4;
 
 //firebase stuff
 /*
@@ -27,40 +27,18 @@ admin.initializeApp({
 //setup database
 let db = admin.database();*/
 
-async function package(url, index, browser, anime, db) {
-    let page = await scrape.initPage(browser);
-    //await page.authenticate({ username: proxySettings.username, password: proxySettings.password });
-    let player = await scrape.getPlayer(page, url);
-    await page.close();
-
-    /*
-    let episode = { id: index, source: player };
-    console.log(episode);
-
-    //push to episode
-    let ref = db.ref(`scrape-results/${anime.title}/episodes`).push();
-    ref.set(episode);*/
-    let episode = {source: player};
-    db.ref(`scrape-results/${anime.title}/episodes/${index}`).set(episode);
-}
-
 module.exports = {
     scrapeURL: async (url, title, db) => {
         let start = new Date();
-        let browser, page, anime, sources;
+        let browser, anime, sources;
 
         //login with proxy and get all scrape sources
-        //await retry(async () => {
-            browser = await puppeteer.launch({ headless: true, ignoreHTTPSErrors: true})//, args: [`--proxy-server=http://${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`] });
-            page = await scrape.initPage(browser);
-           // await page.authenticate({ username: proxySettings.username, password: proxySettings.password });
-      //  }, { retries: 100 });
-        [sources, ...rest] = await Promise.all([new Promise((resolve, reject) => {
-            scrape.getSource(url, null, (sources) => {
-                resolve(sources);
-            })
-        }), page.goto(url, { waitUntil: "domcontentloaded" })]);
-
+        await new Promise((resolve, reject) => {
+            retry(async () => {
+                browser = await puppeteer.launch({ headless: false, args: [`--proxy-server=${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`, `--ignore-certificate-errors`] });
+                resolve(browser);
+            }, { retries: 100 })
+        });
         //new anime object
         anime = { title: title };
 
@@ -83,8 +61,28 @@ module.exports = {
             })();
             console.log(`Execution Completed: ${new Date() - start}ms`);
         }
-        async.each(sources[0].sourceList, (s) => {
-            puppet.push({ func: package, args: [`https://www6.9anime.is${s.href}`, s.index, browser, anime, db] }, () => { return console.log("Completed task!") })
+
+
+        async function package(url, index, browser, anime, db) {
+            console.log(url);
+            let page = await scrape.initPage(browser);
+            await page.authenticate({ username: proxySettings.username, password: proxySettings.password });
+            let player = await scrape.getPlayer(page, url);
+            await page.close();
+
+            let episode = { source: player };
+            
+            db.ref(`scrape-results/${anime.title}/episodes/${index}`).set(episode);
+        }
+
+        await new Promise((resolve, reject) => {
+            scrape.getSource(url, null, (sources) => {
+                resolve(sources);
+            })
+        }).then((sources) => {
+            async.each(sources[0].sourceList, (s) => {
+                puppet.push({ func: package, args: [`https://www6.9anime.is${s.href}`, s.index, browser, anime, db] })
+            });
         });
     }
 }

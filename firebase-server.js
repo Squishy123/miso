@@ -76,7 +76,7 @@ const init = async () => {
             return stringSimilarity.compareTwoStrings(b.title, query) - stringSimilarity.compareTwoStrings(a.title, query);
           });
           //push to search results cache
-          db.ref(`9anime-search-results/${query}`).set({results: similaritySorted});
+          db.ref(`9anime-search-results/${query}`).set({ results: similaritySorted });
           //remove index
           db.ref(`9anime-search-requests/${snapshot.key}`).remove();
         })
@@ -88,9 +88,34 @@ const init = async () => {
   //reference for scrape requests
   let scrapeRequests = db.ref('scrape-requests');
   scrapeRequests.on('child_added', (snapshot) => {
-    let query = snapshot.val();
-    taskQueue.push({func: nineAnimeRequest.scrapeURL(query.url, query.title, db), args: [query.url, query.title, db]}, () => {console.log(`Finished scraping ${query.title}`)});
-    db.ref(`scrape-requests/${snapshot.key}`).remove();
+    db.ref(`9anime-search-results/${snapshot.val()}`).once('value', sh => {
+      let query = sh.val();
+      if (query) {
+        let data = query.results[0];
+        taskQueue.push({ func: nineAnimeRequest.scrapeURL(data.href, data.title, db), args: [data.href, data.title, db] }, () => { return console.log(`Scraping ${data.title}`) });
+      } else {
+        async.retry({ times: 100 },
+          (cb, results) => {
+            nineAnimeScraper.getSearch(snapshot.val(), `https://${proxySettings.username}:${proxySettings.password}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`, (res) => {
+              if (res instanceof Error)
+                cb(new Error("Tunnel Failed"));
+
+              let similaritySorted = res.sort((a, b) => {
+                return stringSimilarity.compareTwoStrings(b.title, snapshot.val()) - stringSimilarity.compareTwoStrings(a.title, snapshot.val());
+              });
+
+              //run task
+              let data = similaritySorted[0];
+              taskQueue.push({ func: nineAnimeRequest.scrapeURL(data.href, data.title, db), args: [data.href, data.title, db] }, () => { return console.log(`Scraping ${data.title}`) });
+              //push to search results cache
+              db.ref(`9anime-search-results/${snapshot.val()}`).set({ results: similaritySorted });
+            })
+          }, (err, res) => {
+            console.log(err);
+          });
+      }
+      //db.ref(`scrape-requests/${snapshot.key}`).remove();
+    });
   });
 }
 
