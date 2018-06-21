@@ -62,10 +62,12 @@ module.exports = {
             scrape.getSource(url, null, (sources) => {
                 //check if there are new episodes and append them if so
                 db.ref(`scrape-results/${anime.title}/episodes`).once('value').then((snapshot) => {
-                    let currentEpLength = Object.values(snapshot.val()).length;
-                    if (sources[0].sourceList.length > currentEpLength) {
-                        let scrapeSources = sources[0].sourceList.slice(currentEpLength);
-                        resolve(scrapeSources);
+                    if (snapshot.val()) {
+                        let currentEpLength = Object.values(snapshot.val()).length;
+                        if (sources[0].sourceList.length > currentEpLength) {
+                            let scrapeSources = sources[0].sourceList.slice(currentEpLength);
+                            resolve(scrapeSources);
+                        }
                     }
                     resolve(sources[0].sourceList);
                 });
