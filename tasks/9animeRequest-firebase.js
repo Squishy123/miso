@@ -8,24 +8,7 @@ const proxyList = require('../proxyList.json');
 const proxySettings = require('../proxySettings.json')
 
 //threads
-const threads = 4;
-
-//firebase stuff
-/*
-const admin = require('firebase-admin');
-const serviceAccount = require("../amine-7eb29-firebase-adminsdk-b3cu9-4b3d779435.json");
-
-//init firebase
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://amine-7eb29.firebaseio.com",
-    databaseAuthVariableOverride: {
-        uid: 'miso'
-    }
-});
-
-//setup database
-let db = admin.database();*/
+const threads = 2;
 
 module.exports = {
     scrapeURL: async (url, title, db) => {
@@ -40,7 +23,7 @@ module.exports = {
             }, { retries: 100 })
         });
         //new anime object
-        anime = { title: title };
+        anime = { title: title.replace(/\\/g, '')};
 
         let numTask = 0;
         let puppet = async.queue(async (task, callback) => {
