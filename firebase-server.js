@@ -41,7 +41,7 @@ const init = async () => {
     console.log(`Running Task`)
     await task.func.apply(null.task.args);
     callback();
-  }, 8);
+  }, 2);
 
   taskQueue.saturated = () => {
     console.log(`Waiting for current tasks to complete...`)
@@ -106,7 +106,7 @@ const init = async () => {
 
               //run task
               let data = similaritySorted[0];
-              taskQueue.push({ func: nineAnimeRequest.scrapeURL(data.href, data.title, db), args: [data.href, data.title, db] }, () => { return console.log(`Scraping ${data.title}`) });
+              taskQueue.push({ func: nineAnimeRequest.scrapeURL, args: [data.href, data.title, db] }, () => { return console.log(`Scraping ${data.title}`) });
               //push to search results cache
               db.ref(`9anime-search-results/${snapshot.val()}`).set({ results: similaritySorted });
             })

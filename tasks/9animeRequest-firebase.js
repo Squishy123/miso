@@ -8,7 +8,7 @@ const proxyList = require('../proxyList.json');
 const proxySettings = require('../proxySettings.json')
 
 //threads
-const threads = 2;
+const threads = 1;
 
 module.exports = {
     scrapeURL: async (url, title, db) => {
@@ -18,7 +18,7 @@ module.exports = {
         //login with proxy and get all scrape sources
         await new Promise((resolve, reject) => {
             retry(async () => {
-                browser = await puppeteer.launch({ headless: true, args: [`--proxy-server=${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}`, `--ignore-certificate-errors`] });
+                browser = await puppeteer.launch({ headless: true, args: [`--proxy-server=http://${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`, `--ignore-certificate-errors`] });
                 resolve(browser);
             }, { retries: 100 })
         });
@@ -48,7 +48,7 @@ module.exports = {
 
         async function package(url, index, browser, anime, db) {
             console.log(index);
-            let page = await scrape.initPage(browser);
+            let page = await browser.newPage();
             await page.authenticate({ username: proxySettings.username, password: proxySettings.password });
             let player = await scrape.getPlayer(page, url);
             await page.close();
@@ -64,7 +64,7 @@ module.exports = {
                 db.ref(`scrape-results/${anime.title}/episodes`).once('value').then((snapshot) => {
                     if (snapshot.val()) {
                         let currentEpLength = Object.values(snapshot.val()).length;
-                        if (sources[0].sourceList.length > currentEpLength) {
+                        if (sources[0].sourceList.length >= currentEpLength) {
                             let scrapeSources = sources[0].sourceList.slice(currentEpLength);
                             resolve(scrapeSources);
                         }
@@ -73,6 +73,7 @@ module.exports = {
                 });
             });
         }).then((sources) => {
+            if(!sources.length) console.log("No new episodes found!")
             async.each(sources, (s) => {
                 puppet.push({ func: package, args: [`https://www6.9anime.is${s.href}`, s.index, browser, anime, db] })
             });
