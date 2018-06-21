@@ -23,7 +23,7 @@ module.exports = {
             }, { retries: 100 })
         });
         //new anime object
-        anime = { title: title.replace(/\\/g, '')};
+        anime = { title: title.replace(/\\/g, '') };
 
         let numTask = 0;
         let puppet = async.queue(async (task, callback) => {
@@ -54,16 +54,24 @@ module.exports = {
             await page.close();
 
             let episode = { source: player };
-            
+
             db.ref(`scrape-results/${anime.title}/episodes/${index}`).set(episode);
         }
 
         await new Promise((resolve, reject) => {
             scrape.getSource(url, null, (sources) => {
-                resolve(sources);
-            })
+                //check if there are new episodes and append them if so
+                db.ref(`scrape-results/${anime.title}/episodes`).once('value').then((snapshot) => {
+                    let currentEpLength = Object.values(snapshot.val()).length;
+                    if (sources[0].sourceList.length > currentEpLength) {
+                        let scrapeSources = sources[0].sourceList.slice(currentEpLength);
+                        resolve(scrapeSources);
+                    }
+                    resolve(sources[0].sourceList);
+                });
+            });
         }).then((sources) => {
-            async.each(sources[0].sourceList, (s) => {
+            async.each(sources, (s) => {
                 puppet.push({ func: package, args: [`https://www6.9anime.is${s.href}`, s.index, browser, anime, db] })
             });
         });
