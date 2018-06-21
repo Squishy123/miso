@@ -47,7 +47,7 @@ module.exports = {
 
 
         async function package(url, index, browser, anime, db) {
-            console.log(url);
+            console.log(index);
             let page = await scrape.initPage(browser);
             await page.authenticate({ username: proxySettings.username, password: proxySettings.password });
             let player = await scrape.getPlayer(page, url);

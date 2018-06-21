@@ -2,9 +2,9 @@
 # yarn lockfile v1
 
 
-"9anime-scraper@^1.0.8":
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/9anime-scraper/-/9anime-scraper-1.0.8.tgz#04b79264d672af9392b89e809a087cd51a1fb93f"
+"9anime-scraper@^1.0.9":
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/9anime-scraper/-/9anime-scraper-1.0.9.tgz#3f0d052a4e80c14c9a3727574326011a9903eb07"
   dependencies:
     cheerio "^1.0.0-rc.2"
     puppeteer "^1.4.0"
