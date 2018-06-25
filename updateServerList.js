@@ -6,7 +6,7 @@ request('https://nordvpn.com/ovpn/', (err, res, html) => {
     let $ = cheerio.load(html);
     let servers = [];
     $('body > div.Article > div > div > div > div > div > ul').find('span.mr-2').each((i, e) => {
-        if ($(e).text().includes('us'))
+        if ($(e).text().includes('ca'))
             servers.push($(e).text());
     });
 

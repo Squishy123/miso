@@ -101,7 +101,7 @@ const init = async () => {
                 cb(new Error("Tunnel Failed"));
 
               let similaritySorted = res.sort((a, b) => {
-                return stringSimilarity.compareTwoStrings(b.href, snapshot.val()) - stringSimilarity.compareTwoStrings(a.href, snapshot.val());
+                return stringSimilarity.compareTwoStrings(b.title, snapshot.val()) - stringSimilarity.compareTwoStrings(a.title, snapshot.val());
               });
 
               //run task
