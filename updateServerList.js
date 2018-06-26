@@ -11,5 +11,5 @@ request('https://nordvpn.com/ovpn/', (err, res, html) => {
     });
 
     servers = JSON.stringify(servers);
-    fs.writeFileSync('./proxylist.json', servers, { encoding: 'utf-8', flag: 'w' })
+    fs.writeFileSync('./proxyList.json', servers, { encoding: 'utf-8', flag: 'w' })
 });

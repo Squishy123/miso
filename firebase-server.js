@@ -16,7 +16,7 @@ const nineAnimeRequest = require('./tasks/9animeRequest-firebase.js');
 
 //Proxy Properties
 const proxySettings = require('./proxySettings.json');
-const proxyList = require('./proxylist.json');
+const proxyList = require('./proxyList.json');
 
 //server stuff
 const Hapi = require('hapi');
