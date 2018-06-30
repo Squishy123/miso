@@ -13,7 +13,7 @@ const threads = 4;
 module.exports = {
     scrapeURL: async (url, title, db) => {
         let start = new Date();
-        let browser, anime, sources, headers = new Map(), proxy="http://us633.nordvpn.com:80"//`http://${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`;
+        let browser, anime, sources, headers = new Map(), proxy=/*"http://us633.nordvpn.com:80"//*/`http://${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`;
         //login with proxy and get all scrape sources
         await retry(async () => {
             browser = await puppeteer.launch({

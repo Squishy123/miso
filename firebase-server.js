@@ -41,7 +41,7 @@ const init = async () => {
     console.log(`Running Task`)
     await task.func.apply(null.task.args);
     callback();
-  }, 2);
+  }, 8);
 
   taskQueue.saturated = () => {
     console.log(`Waiting for current tasks to complete...`)
