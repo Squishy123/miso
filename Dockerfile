@@ -1,7 +1,7 @@
 FROM node:10
 
 # Create App Directory
-WORKDIR /usr/src/app
+WORKDIR ./
 
 # Install App Dependencies
 COPY package*.json ./
