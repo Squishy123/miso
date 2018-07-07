@@ -17,7 +17,7 @@ module.exports = {
         //login with proxy and get all scrape sources
         await retry(async () => {
             browser = await puppeteer.launch({
-                headless: true, ignoreHTTPSErrors: true, args: [
+                headless: false, ignoreHTTPSErrors: true, args: [
                     `--proxy-server=${proxy}`]
             });
             console.log("Tunnelling!")
