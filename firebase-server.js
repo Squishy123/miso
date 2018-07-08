@@ -92,7 +92,7 @@ const init = async () => {
       let query = sh.val();
       if (query) {
         let data = query.results[0];
-        taskQueue.push({ func: nineAnimeRequest.scrapeURL(data.href, snapshot.val(), db), args: [data.href, snapshot.val(), db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${data.title}`) });
+        taskQueue.push({ func: nineAnimeRequest.scrapeURL(data.href, data.title, db), args: [data.href, data.title, db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${data.title}`) });
       } else {
         async.retry({ times: 100 },
           (cb, results) => {
@@ -106,7 +106,7 @@ const init = async () => {
 
               //run task
               let data = similaritySorted[0];
-              taskQueue.push({ func: nineAnimeRequest.scrapeURL(data.href, snapshot.val(), db), args: [data.href, snapshot.val(), db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${data.title}`) });
+              taskQueue.push({ func: nineAnimeRequest.scrapeURL(data.href, data.title, db), args: [data.href, data.title, db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${data.title}`) });
               //push to search results cache
               db.ref(`9anime-search-results/${snapshot.val()}`).set({ results: similaritySorted });
             })
