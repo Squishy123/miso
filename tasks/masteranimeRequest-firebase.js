@@ -8,14 +8,18 @@ require('dotenv').config()
 //proxy
 const proxyList = require('../proxyList.json');
 
+
+const HttpsProxyAgent = require('https-proxy-agent');
+
 //threads
 const threads = 4;
 
 module.exports = {
     scrapeURL: async (searchAnime, db) => {
         let start = new Date();
-        let proxy = `http://${process.env.PROXY}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}`;
-
+        let proxy= `http://${process.env.PROXY}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`
+        //let agent = new HttpsProxyAgent(proxy);
+        let agent = require('proxying-agent').create(proxy, "https://masterani.me")
 
         let numTask = 0;
         let puppet = async.queue(async (task, callback) => {
@@ -37,13 +41,13 @@ module.exports = {
 
         async function package(episodeNumber, db) {
             console.log(episodeNumber);
-            let src = await scraper.getSources(searchAnime.slug, episodeNumber,  { proxy: proxy, port: 80, method: 'GET'});
+            let src = await scraper.getSources(searchAnime.slug, episodeNumber,  { agent: agent, method: 'GET'});
             db.ref(`scrape-results/${searchAnime.title}/episodes/${episodeNumber}`).set(src);
         }
 
         await new Promise((resolve) => {
-            scraper.getSources(searchAnime.slug, { proxy: proxy, port: 80, method: 'GET'}).then(async(sources) => {
-                let meta = await scraper.getMeta(searchAnime.id, { proxy: proxy, port: 80, method: 'GET'});
+            scraper.getSources(searchAnime.slug, { agent: agent, method: 'GET'}).then(async(sources) => {
+                let meta = await scraper.getMeta(searchAnime.id, { agent: agent, method: 'GET'});
                 //check if there are new episodes and append them if so
                 db.ref(`scrape-results/${searchAnime.title}/episodes`).once('value').then((snapshot) => {
                     if (snapshot.val()) {
@@ -56,9 +60,9 @@ module.exports = {
                             resolve(i);
                         }
                     }
-                    console.log(meta);
                     let a = new Array();
-                    a.fill((1, meta.episode_count));
+                    a = a.fill((1, meta.episode_count));
+                    console.log(meta);
                     resolve(a);
                 });
             });
