@@ -1,15 +1,24 @@
-const cheerio = require('cheerio');
-const request = require('request');
+const request = require('request-promise');
 const fs = require('fs');
 
-request('https://nordvpn.com/ovpn/', (err, res, html) => {
-    let $ = cheerio.load(html);
-    let servers = [];
-    $('body > div.Article > div > div > div > div > div > ul').find('span.mr-2').each((i, e) => {
-        if ($(e).text().includes('ca'))
-            servers.push($(e).text());
-    });
+request({
+    method: 'GET', uri: 'https://nordvpn.com/api/server', json: true, headers: {
+        'User-Agent': 'Request-Promise'
+    },
+})
+    .then((res) => {
+        let servers = [];
+        res.forEach(e => {
+            if (e.features.proxy) {
+                servers.push(e.ip_address);
+                console.log(e.ip_address)
+            }
+        });
 
-    servers = JSON.stringify(servers);
-    fs.writeFileSync('./proxyList.json', servers, { encoding: 'utf-8', flag: 'w' })
-});
+        servers = JSON.stringify(servers);
+        fs.writeFile('./proxyList.json', servers, () => {
+            console.log("Finished Writing!")
+        })
+    }).catch((err) => {
+        console.log(err);
+    })

@@ -2,20 +2,22 @@
 const admin = require('firebase-admin');
 const serviceAccount = require("./amine-7eb29-firebase-adminsdk-b3cu9-4b3d779435.json");
 
+//env
+require('dotenv').config()
+
 //async
 const async = require('async');
 
-//search result processing
-const stringSimilarity = require('string-similarity');
-
 //Scrapers
-const nineAnimeScraper = require('9anime-scraper');
+const scraper = require('masterani-scraper');
 
 //Tasks
-const nineAnimeRequest = require('./tasks/9animeRequest-firebase.js');
+const masterAnimeRequest = require('./tasks/masteranimeRequest-firebase.js');
+
+
+const HttpsProxyAgent = require('https-proxy-agent');
 
 //Proxy Properties
-const proxySettings = require('./proxySettings.json');
 const proxyList = require('./proxyList.json');
 
 //server stuff
@@ -36,12 +38,13 @@ const init = async () => {
   await server.start();
   console.log(`Server running at ${server.info.uri}`);
 
+
   //setup task manager
   let taskQueue = async.queue(async (task, callback) => {
     console.log(`Running Task`)
     await task.func.apply(null.task.args);
     callback();
-  }, 8);
+  }, 1);
 
   taskQueue.saturated = () => {
     console.log(`Waiting for current tasks to complete...`)
@@ -57,62 +60,44 @@ const init = async () => {
   });
 
   //setup database
-  let db = admin.database();
+  let db = admin.database();;
 
-  //ref for 9anime search results
-  let nineSearchResults = db.ref('9anime-search-results');
+  //ref for masteranime search requests
+  let masteranimeSearchRequests = db.ref('search-requests');
 
-  //reference for 9anime search requests
-  let nineSearchRequest = db.ref('9anime-search-requests');
-  nineSearchRequest.on('child_added', (snapshot) => {
+  masteranimeSearchRequests.on('child_added', async (snapshot) => {
     let query = snapshot.val();
-    async.retry({ times: 100 },
-      (cb, results) => {
-        nineAnimeScraper.getSearch(query, `http://${proxySettings.username}:${proxySettings.password}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`, (res) => {
-          if (res instanceof Error)
-            cb(new Error("Tunnel Failed"));
-
-          let similaritySorted = res.sort((a, b) => {
-            return stringSimilarity.compareTwoStrings(b.title, query) - stringSimilarity.compareTwoStrings(a.title, query);
-          });
-          //push to search results cache
-          db.ref(`9anime-search-results/${query}`).set({ results: similaritySorted });
-          //remove index
-          db.ref(`9anime-search-requests/${snapshot.key}`).remove();
-        })
-      }, (err, res) => {
-        console.log(err);
-      });
-  });
+    let proxy= `http://${process.env.PROXY}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`
+    let agent = new HttpsProxyAgent(proxy);
+    let res = await scraper.getSearch(query, { agent: agent, method: 'GET'})
+    console.log(res);
+    //push to search results cache
+    db.ref(`search-results/${query}`).set({ results: res });
+    //remove index
+    db.ref(`search-requests/${snapshot.key}`).remove();
+  })
 
   //reference for scrape requests
   let scrapeRequests = db.ref('scrape-requests');
   scrapeRequests.on('child_added', (snapshot) => {
-    db.ref(`9anime-search-results/${snapshot.val()}`).once('value', sh => {
+    db.ref(`search-results/${snapshot.val()}`).once('value', sh => {
       let query = sh.val();
       if (query) {
         let data = query.results[0];
-        taskQueue.push({ func: nineAnimeRequest.scrapeURL(data.href, data.title, db), args: [data.href, data.title, db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${data.title}`) });
+        taskQueue.push({ func: masterAnimeRequest.scrapeURL(data, db), args: [data, db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${data.title}`) });
       } else {
-        async.retry({ times: 100 },
-          (cb, results) => {
-            nineAnimeScraper.getSearch(snapshot.val(), `https://${proxySettings.username}:${proxySettings.password}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`, (res) => {
-              if (res instanceof Error)
-                cb(new Error("Tunnel Failed"));
-
-              let similaritySorted = res.sort((a, b) => {
-                return stringSimilarity.compareTwoStrings(b.title, snapshot.val()) - stringSimilarity.compareTwoStrings(a.title, snapshot.val());
-              });
-
-              //run task
-              let data = similaritySorted[0];
-              taskQueue.push({ func: nineAnimeRequest.scrapeURL(data.href, data.title, db), args: [data.href, data.title, db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${data.title}`) });
-              //push to search results cache
-              db.ref(`9anime-search-results/${snapshot.val()}`).set({ results: similaritySorted });
-            })
-          }, (err, res) => {
+        let proxy= `http://${process.env.PROXY}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`
+        let agent = new HttpsProxyAgent(proxy);
+        scraper.getSearch(query, { agent: agent, method: 'GET' })
+          .then((res) => {
+            //push to search results cache
+            db.ref(`search-results/${query}`).set({ results: res });
+            taskQueue.push({ func: masterAnimeRequest.scrapeURL(res[0], db), args: [res[0], db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${res[0].title}`) });
+            //push to search results cache
+            db.ref(`search-results/${snapshot.val()}`).set({ results: res });
+          }).catch((err) => {
             console.log(err);
-          });
+          })
       }
     });
   });

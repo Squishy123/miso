@@ -84,6 +84,7 @@ module.exports = {
                             resolve(scrapeSources);
                         }
                     }
+                    console.log(sources[0])
                     resolve(sources[0].sourceList);
                 });
             });
