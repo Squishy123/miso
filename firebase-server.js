@@ -67,9 +67,9 @@ const init = async () => {
 
   masteranimeSearchRequests.on('child_added', async (snapshot) => {
     let query = snapshot.val();
-    let proxy= `http://${process.env.PROXY}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`
+    let proxy = `http://${process.env.PROXY}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`
     let agent = new HttpsProxyAgent(proxy);
-    let res = await scraper.getSearch(query, { agent: agent, method: 'GET'})
+    let res = await scraper.getSearch(query, { agent: agent, method: 'GET' })
     console.log(res);
     //push to search results cache
     db.ref(`search-results/${query}`).set({ results: res });
@@ -86,15 +86,16 @@ const init = async () => {
         let data = query.results[0];
         taskQueue.push({ func: masterAnimeRequest.scrapeURL(data, db), args: [data, db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${data.title}`) });
       } else {
-        let proxy= `http://${process.env.PROXY}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`
+        let proxy = `http://${process.env.PROXY}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`
         let agent = new HttpsProxyAgent(proxy);
-        scraper.getSearch(query, { agent: agent, method: 'GET' })
+        scraper.getSearch(snapshot.val(), { method: 'GET' })
           .then((res) => {
-            //push to search results cache
-            db.ref(`search-results/${query}`).set({ results: res });
-            taskQueue.push({ func: masterAnimeRequest.scrapeURL(res[0], db), args: [res[0], db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${res[0].title}`) });
+            
+            console.log(res);
             //push to search results cache
             db.ref(`search-results/${snapshot.val()}`).set({ results: res });
+
+            taskQueue.push({ func: masterAnimeRequest.scrapeURL(res[0], db), args: [res[0], db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${res[0].title}`) });
           }).catch((err) => {
             console.log(err);
           })

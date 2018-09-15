@@ -9,7 +9,7 @@ request({
     .then((res) => {
         let servers = [];
         res.forEach(e => {
-            if (e.features.proxy) {
+            if (e.features.proxy && e.flag == "CA") {
                 servers.push(e.ip_address);
                 console.log(e.ip_address)
             }
