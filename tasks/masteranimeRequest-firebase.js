@@ -40,7 +40,6 @@ module.exports = {
 
 
         async function package(episodeNumber, db) {
-            console.log(episodeNumber);
             let src = await scraper.getSources(searchAnime.slug, episodeNumber, { method: 'GET' });
             console.log(src)
             db.ref(`scrape-results/${kitsuID}/episodes/${episodeNumber}`).set(src);
@@ -49,21 +48,21 @@ module.exports = {
         await new Promise((resolve) => {
             //scraper.getSources(searchAnime.slug, { method: 'GET'}).then(async(sources) => {
             scraper.getMeta(searchAnime.id, { method: 'GET' }).then((meta) => {
+                episode_count = (meta.info.episode_count) ? meta.info.episode_count : meta.episodes.length;
                 //check if there are new episodes and append them if so
                 db.ref(`scrape-results/${kitsuID}/episodes`).once('value').then((snapshot) => {
                     if (snapshot.val()) {
                         let currentEpLength = Object.values(snapshot.val()).length;
-                        if (meta.info.episode_count >= currentEpLength) {
+                        if (episode_count >= currentEpLength) {
                             let scrapeSources = [];
-                            for (let i = currentEpLength; i <= meta.info.episode_count; i++) {
+                            for (let i = currentEpLength; i <= episode_count; i++) {
                                 scrapeSources.push(i);
                             }
                             resolve(scrapeSources);
                         }
                     }
                     let a = []
-                    for(let i = 1; i <= meta.info.episode_count; i++) {
-                        console.log(i);
+                    for(let i = 1; i <= episode_count; i++) {
                         a.push(i);
                     }
                     resolve(a);
