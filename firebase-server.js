@@ -80,22 +80,19 @@ const init = async () => {
   //reference for scrape requests
   let scrapeRequests = db.ref('scrape-requests');
   scrapeRequests.on('child_added', (snapshot) => {
-    db.ref(`search-results/${snapshot.val()}`).once('value', sh => {
+    db.ref(`search-results/${snapshot.val().id}`).once('value', sh => {
       let query = sh.val();
       if (query) {
         let data = query.results[0];
-        taskQueue.push({ func: masterAnimeRequest.scrapeURL(data, db), args: [data, db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${data.title}`) });
+        taskQueue.push({ func: masterAnimeRequest.scrapeURL(data, snapshot.val().id, db), args: [data, snapshot.val().id, db] }, () => { db.ref(`scrape-requests/${snapshot.val().id}`).remove(); return console.log(`Scraping ${data.title}`) });
       } else {
         let proxy = `http://${process.env.PROXY}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`
         let agent = new HttpsProxyAgent(proxy);
-        scraper.getSearch(snapshot.val(), { method: 'GET' })
+        scraper.getSearch(snapshot.val().title, { method: 'GET' })
           .then((res) => {
-            
-            console.log(res);
             //push to search results cache
-            db.ref(`search-results/${snapshot.val()}`).set({ results: res });
-
-            taskQueue.push({ func: masterAnimeRequest.scrapeURL(res[0], db), args: [res[0], db] }, () => { db.ref(`scrape-requests/${snapshot.key}`).remove(); return console.log(`Scraping ${res[0].title}`) });
+            db.ref(`search-results/${snapshot.val().id}`).set({ results: res });
+            taskQueue.push({ func: masterAnimeRequest.scrapeURL(res[0], snapshot.val().id, db), args: [res[0], snapshot.val().id, db] }, () => { db.ref(`scrape-requests/${snapshot.val().id}`).remove(); return console.log(`Scraping ${res[0].title}`) });
           }).catch((err) => {
             console.log(err);
           })

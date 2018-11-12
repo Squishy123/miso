@@ -15,7 +15,7 @@ const HttpsProxyAgent = require('https-proxy-agent');
 const threads = 4;
 
 module.exports = {
-    scrapeURL: async (searchAnime, db) => {
+    scrapeURL: async (searchAnime, kitsuID, db) => {
         let start = new Date();
         let proxy = `http://${process.env.PROXY}@${proxyList[Math.floor(Math.random() * Math.floor(proxyList.length))]}:80`
         //let agent = new HttpsProxyAgent(proxy);
@@ -42,14 +42,15 @@ module.exports = {
         async function package(episodeNumber, db) {
             console.log(episodeNumber);
             let src = await scraper.getSources(searchAnime.slug, episodeNumber, { method: 'GET' });
-            db.ref(`scrape-results/${searchAnime.title}/episodes/${episodeNumber}`).set(src);
+            console.log(src)
+            db.ref(`scrape-results/${kitsuID}/episodes/${episodeNumber}`).set(src);
         }
 
         await new Promise((resolve) => {
             //scraper.getSources(searchAnime.slug, { method: 'GET'}).then(async(sources) => {
             scraper.getMeta(searchAnime.id, { method: 'GET' }).then((meta) => {
                 //check if there are new episodes and append them if so
-                db.ref(`scrape-results/${searchAnime.title}/episodes`).once('value').then((snapshot) => {
+                db.ref(`scrape-results/${kitsuID}/episodes`).once('value').then((snapshot) => {
                     if (snapshot.val()) {
                         let currentEpLength = Object.values(snapshot.val()).length;
                         if (meta.info.episode_count >= currentEpLength) {
@@ -69,7 +70,6 @@ module.exports = {
                 });
             });
         }).then((sources) => {
-            console.log(sources);
             if (sources && !sources.length) {
                 console.log("No new episodes found!");
             } else {
