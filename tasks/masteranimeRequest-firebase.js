@@ -41,7 +41,6 @@ module.exports = {
 
         async function package(episodeNumber, db) {
             let src = await scraper.getSources(searchAnime.slug, episodeNumber, { method: 'GET' });
-            console.log(src)
             db.ref(`scrape-results/${kitsuID}/episodes/${episodeNumber}`).set(src);
         }
 
